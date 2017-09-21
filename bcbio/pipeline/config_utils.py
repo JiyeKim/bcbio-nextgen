@@ -21,7 +21,8 @@ def update_w_custom(config, lane_info):
     """
     name_remaps = {"variant": ["SNP calling", "variant", "variant2"],
                    "SNP calling": ["SNP calling", "variant", "variant2"],
-                   "variant2": ["SNP calling", "variant", "variant2"]}
+                   "variant2": ["SNP calling", "variant", "variant2"],
+                   "dgseq": ["SNP calling", "dgseq", "dgseq"]}
     config = copy.deepcopy(config)
     base_name = lane_info.get("analysis")
     if "algorithm" not in config:

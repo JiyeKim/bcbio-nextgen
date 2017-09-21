@@ -38,6 +38,7 @@ def run_main(workdir, config_file=None, fc_dir=None, run_info_yaml=None,
         config["log_dir"] = os.path.join(workdir, DEFAULT_LOG_DIR)
     if parallel["type"] in ["local", "clusterk"]:
         _setup_resources()
+        
         _run_toplevel(config, config_file, workdir, parallel,
                       fc_dir, run_info_yaml)
     elif parallel["type"] == "ipython":
@@ -77,12 +78,21 @@ def _run_toplevel(config, config_file, work_dir, parallel,
     log.setup_local_logging(config, parallel)
     logger.info("System YAML configuration: %s" % os.path.abspath(config_file))
     dirs = run_info.setup_directories(work_dir, fc_dir, config, config_file)
+    logger.info("*- dirs: %s" % dirs)
     config_file = os.path.join(dirs["config"], os.path.basename(config_file))
     pipelines, config = _pair_samples_with_pipelines(run_info_yaml, config)
+    logger.info("*- pipelines: %s" % pipelines)
+
     system.write_info(dirs, parallel, config)
     with tx_tmpdir(config if parallel.get("type") == "local" else None) as tmpdir:
         tempfile.tempdir = tmpdir
+        
+        logger.info("hahahahahahah")
+        logger.info(pipelines.items())
+        logger.info('=' * 20)
         for pipeline, samples in pipelines.items():
+            logger.info('!!!!!!!!!!!**')
+            logger.info(samples)
             for xs in pipeline(config, run_info_yaml, parallel, dirs, samples):
                 pass
 
@@ -170,6 +180,8 @@ def variant2pipeline(config, run_info_yaml, parallel, dirs, samples):
             samples = structural.run(samples, run_parallel, "standard")
         with profile.report("structural variation ensemble", dirs):
             samples = structural.run(samples, run_parallel, "ensemble")
+        with profile.report("structural variation digital sequencing", dirs):
+            samples = structural.run(samples, run_parallel, "dgseq")
         with profile.report("structural variation validation", dirs):
             samples = run_parallel("validate_sv", samples)
         with profile.report("heterogeneity", dirs):
@@ -366,7 +378,6 @@ def chipseqpipeline(config, run_info_yaml, parallel, dirs, samples):
                 run_parallel("upload_samples_project", [sample])
     return samples
 
-
 def rnaseq_prep_samples(config, run_info_yaml, parallel, dirs, samples):
     """
     organizes RNA-seq and small-RNAseq samples, converting from BAM if
@@ -392,13 +403,102 @@ def rnaseq_prep_samples(config, run_info_yaml, parallel, dirs, samples):
                     samples = run_parallel("trim_sample", samples)
     return samples
 
+def dgseqpipeline(config, run_info_yaml, parallel, dirs, samples):
+    ## Alignment and preparation requiring the entire input file (multicore cluster)
+    logger.info("Starting dgseq pipeline")
+    logger.info(samples)
+
+    '''
+    with prun.start(_wres(parallel, ["aligner", "samtools", "sambamba"],
+                           (["reference", "fasta"], ["reference", "aligner"], ["files"])),
+                    samples, config, dirs, "multicore",
+                    multiplier=alignprep.parallel_multiplier(samples)) as run_parallel:
+        with profile.report("organize samples", dirs):
+            logger.info("Starting organize samples")
+            samples = run_parallel("organize_samples", [[dirs, config, run_info_yaml,
+                                                            [x[0]["description"] for x in samples]]])
+        with profile.report("alignment preparation", dirs):
+            logger.info("Starting organize alignment prep")
+            samples = run_parallel("prep_align_inputs", samples)
+            samples = run_parallel("disambiguate_split", [samples])
+        with profile.report("alignment", dirs):
+            logger.info("Starting organize alignment")
+            samples = run_parallel("process_alignment", samples)
+            samples = disambiguate.resolve(samples, run_parallel)
+            samples = alignprep.merge_split_alignments(samples, run_parallel)
+        with profile.report("callable regions", dirs):
+            samples = run_parallel("prep_samples", [samples])
+            samples = run_parallel("postprocess_alignment", samples)
+            samples = run_parallel("combine_sample_regions", [samples])
+            samples = region.clean_sample_data(samples)
+        with profile.report("hla typing", dirs):
+            samples = hla.run(samples, run_parallel)
+
+    ## Variant calling on sub-regions of the input file (full cluster)
+    with prun.start(_wres(parallel, ["gatk", "picard", "variantcaller"]),
+                    samples, config, dirs, "full",
+                    multiplier=region.get_max_counts(samples), max_multicore=1) as run_parallel:
+        with profile.report("alignment post-processing", dirs):
+            samples = region.parallel_prep_region(samples, run_parallel)
+        with profile.report("variant calling", dirs):
+            samples = genotype.parallel_variantcall_region(samples, run_parallel)
+
+    ## Finalize variants, BAMs and population databases (per-sample multicore cluster)
+    with prun.start(_wres(parallel, ["gatk", "gatk-vqsr", "snpeff", "bcbio_variation",
+                                     "gemini", "samtools", "fastqc", "sambamba",
+                                     "bcbio-variation-recall", "qsignature",
+                                     "svcaller", "kraken", "preseq", "smcounter"]),
+                    samples, config, dirs, "multicore2",
+                    multiplier=structural.parallel_multiplier(samples)) as run_parallel:
+        with profile.report("joint squaring off/backfilling", dirs):
+            samples = joint.square_off(samples, run_parallel)
+        with profile.report("variant post-processing", dirs):
+            samples = run_parallel("postprocess_variants", samples)
+            samples = run_parallel("split_variants_by_sample", samples)
+        with profile.report("prepped BAM merging", dirs):
+            samples = region.delayed_bamprep_merge(samples, run_parallel)
+        with profile.report("validation", dirs):
+            samples = run_parallel("compare_to_rm", samples)
+            samples = genotype.combine_multiple_callers(samples)
+        with profile.report("ensemble calling", dirs):
+            samples = ensemble.combine_calls_parallel(samples, run_parallel)
+        with profile.report("validation summary", dirs):
+            samples = validate.summarize_grading(samples)
+        with profile.report("structural variation precall", dirs):
+            samples = structural.run(samples, run_parallel, "precall")
+        with profile.report("structural variation", dirs):
+            samples = structural.run(samples, run_parallel, "initial")
+        with profile.report("structural variation", dirs):
+            samples = structural.run(samples, run_parallel, "standard")
+        with profile.report("structural variation ensemble", dirs):
+            samples = structural.run(samples, run_parallel, "ensemble")
+        with profile.report("structural variation digital sequencing", dirs):
+            samples = structural.run(samples, run_parallel, "dgseq")
+        with profile.report("structural variation validation", dirs):
+            samples = run_parallel("validate_sv", samples)
+        with profile.report("heterogeneity", dirs):
+            samples = heterogeneity.run(samples, run_parallel)
+        with profile.report("population database", dirs):
+            samples = population.prep_db_parallel(samples, run_parallel)
+        with profile.report("quality control", dirs):
+            samples = qcsummary.generate_parallel(samples, run_parallel)
+        with profile.report("archive", dirs):
+            samples = archive.compress(samples, run_parallel)
+        with profile.report("upload", dirs):
+            samples = run_parallel("upload_samples", samples)
+            for sample in samples:
+                run_parallel("upload_samples_project", [sample])
+    '''
+    logger.info("Timing: finished")
+    return samples
+
 def _get_pipeline(item):
     from bcbio.log import logger
     analysis_type = item.get("analysis", "").lower()
     if analysis_type not in SUPPORTED_PIPELINES:
         logger.error("Cannot determine which type of analysis to run, "
                       "set in the run_info under details.")
-        sys.exit(1)
+        # sys.exit(1)
     else:
         return SUPPORTED_PIPELINES[analysis_type]
 
@@ -436,6 +536,7 @@ def _pair_samples_with_pipelines(run_info_yaml, config):
     return d, config
 
 SUPPORTED_PIPELINES = {"variant2": variant2pipeline,
+                       "dgseq": dgseqpipeline,
                        "snp calling": variant2pipeline,
                        "variant": variant2pipeline,
                        "standard": standardpipeline,

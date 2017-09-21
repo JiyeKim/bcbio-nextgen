@@ -1,0 +1,31 @@
+upload:
+  dir: upload
+details:
+  - analysis: dgseq
+    description: sample1
+    files: [../data/test_dgseq/R_2017_06_19_01_17_03_user_SN1-99-Ion_AmpliSeq_Colon_and_Lung_Cancer_Panel_v2.IonXpress_001.Qcancerpanel.fastq]
+    genome_build: hg19
+    algorithm:
+      aligner: bwa
+      #aligner: bwa
+      variantcaller: [smcounter]
+      #variantcaller: smcounter
+      variant_regions: ../data/test_dgseq/chr22_targets.bed
+      quality_format: Standard
+    description: Test for digitalseq1
+    metadata:
+      batch: TestBatch1
+  - analysis: dgseq
+    description: sample2
+    files: [../data/test_dgseq/R_2017_06_19_01_17_03_user_SN1-99-Ion_AmpliSeq_Colon_and_Lung_Cancer_Panel_v2.IonXpress_002.Qcancerpanel.fastq]
+    genome_build: hg19
+    algorithm:
+      aligner: bwa
+      #aligner: bwa
+      variantcaller: [smcounter]
+      #variantcaller: smcounter
+      variant_regions: ../data/test_dgseq/chr22_targets.bed
+      quality_format: Standard
+    description: Test for digitalseq2
+    metadata:
+      batch: TestBatch1

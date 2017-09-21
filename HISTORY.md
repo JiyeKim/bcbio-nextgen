@@ -1,6 +1,8 @@
 ## 1.0.6 (in progress)
 
 - CWL: support structural variant calling as part of variant pipelines.
+- support barcode clustering
+- smCounter: barcode aware variant caller
 
 ## 1.0.5 (11 Sept 2017)
 

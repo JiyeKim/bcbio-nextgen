@@ -70,3 +70,5 @@ resources:
   oncofuse:
     jvm_opts: ["-Xms750m", "-Xmx2000m"]
     dir: /usr/local/share/java/oncofuse
+  smcounter:
+    dir: ~/works/smCounter_incongs/smCounter/smCounter.py

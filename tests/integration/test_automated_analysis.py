@@ -292,3 +292,16 @@ def test_10_umi(install_test_files, data_dir):
               get_post_process_yaml(data_dir, workdir),
               os.path.join(data_dir, "run_info-umi.yaml")]
         subprocess.check_call(cl)
+
+@pytest.mark.dgseq
+@pytest.mark.install_required
+def test_dgseq(install_test_files, data_dir):
+    """Test variant calling for digitalSequencing with smCounter.
+    Requires smCounter.
+    """
+    with make_workdir() as workdir:
+        cl = ["bcbio_nextgen.py",
+              get_post_process_yaml(data_dir, workdir),
+              # os.path.join(data_dir, os.pardir, "test_dgseq"),
+              os.path.join(data_dir, "run_info-dgseq.yaml")]
+        subprocess.check_call(cl)

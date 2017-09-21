@@ -12,7 +12,7 @@ from bcbio.cwl import cwlutils
 from bcbio.pipeline import datadict as dd
 from bcbio.structural import (battenberg, cn_mops, cnvkit, delly, gridss,
                               lumpy, manta, metasv, prioritize, plot,
-                              seq2c, validate, wham)
+                              seq2c, validate, wham, smcounter)
 from bcbio.variation import vcfutils
 
 # Stratify callers by stage -- see `run` documentation below for definitions
@@ -22,6 +22,7 @@ _CALLERS = {
   "standard": {"cn.mops": cn_mops.run, "manta": manta.run, "cnvkit": cnvkit.run,
                "delly": delly.run, "lumpy": lumpy.run, "wham": wham.run,
                "battenberg": battenberg.run, "seq2c": seq2c.run, "gridss": gridss.run},
+  "dgseq": {"smcounter": smcounter.run},
   "ensemble": {"metasv": metasv.run,
                "prioritize": prioritize.run}}
 _NEEDS_BACKGROUND = set(["cn.mops"])

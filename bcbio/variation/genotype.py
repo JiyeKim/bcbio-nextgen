@@ -33,6 +33,8 @@ def variant_filtration(call_file, ref_file, vrn_files, data, items):
         return vfilter.samtools(call_file, data)
     elif caller in ["gatk", "gatk-haplotype", "haplotyper"]:
         return gatkfilter.run(call_file, ref_file, vrn_files, data)
+    elif caller in ["smcounter"]:
+        return gatkfilter.run(call_file, ref_file, vrn_files, data)
     # no additional filtration for callers that filter as part of call process
     else:
         return call_file
@@ -301,7 +303,7 @@ def handle_multiple_callers(data, key, default=None, require_bam=True):
 
 def get_variantcallers():
     from bcbio.variation import (freebayes, cortex, samtools, varscan, mutect, mutect2,
-                                 platypus, scalpel, sentieon, vardict, qsnp)
+                                 platypus, scalpel, sentieon, vardict, qsnp, smcounter)
     return {"gatk": gatk.unified_genotyper,
             "gatk-haplotype": gatk.haplotype_caller,
             "mutect2": mutect2.mutect2_caller,
@@ -318,7 +320,8 @@ def get_variantcallers():
             "haplotyper": sentieon.run_haplotyper,
             "tnhaplotyper": sentieon.run_tnhaplotyper,
             "tnscope": sentieon.run_tnscope,
-            "qsnp": qsnp.run_qsnp}
+            "qsnp": qsnp.run_qsnp,
+            "smcounter": gatk.haplotype_caller}
 
 def variantcall_sample(data, region=None, align_bams=None, out_file=None):
     """Parallel entry point for doing genotyping of a region of a sample.
