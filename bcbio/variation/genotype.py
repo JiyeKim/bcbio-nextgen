@@ -169,6 +169,7 @@ def _collapse_by_bam_variantcaller(samples):
 def _dup_samples_by_variantcaller(samples, require_bam=True):
     """Prepare samples by variant callers, duplicating any with multiple callers.
     """
+
     samples = [utils.to_single_data(x) for x in samples]
     samples = germline.split_somatic(samples)
     to_process = []
@@ -183,16 +184,19 @@ def _dup_samples_by_variantcaller(samples, require_bam=True):
             extras.append([data])
     return to_process, extras
 
+
 def parallel_variantcall_region(samples, run_parallel):
     """Perform variant calling and post-analysis on samples by region.
     """
     to_process, extras = _dup_samples_by_variantcaller(samples)
+
     split_fn = _split_by_ready_regions(".vcf.gz", "work_bam", get_variantcaller)
     samples = _collapse_by_bam_variantcaller(
         grouped_parallel_split_combine(to_process, split_fn,
                                        multi.group_batches, run_parallel,
                                        "variantcall_sample", "concat_variant_files",
-                                       "vrn_file", ["region", "sam_ref", "config"]))
+                                       "vrn_file", ["region", "sam_ref", "config"])
+    )
     return extras + samples
 
 
@@ -321,7 +325,7 @@ def get_variantcallers():
             "tnhaplotyper": sentieon.run_tnhaplotyper,
             "tnscope": sentieon.run_tnscope,
             "qsnp": qsnp.run_qsnp,
-            "smcounter": gatk.haplotype_caller}
+            "smcounter": smcounter.run_smcounter}
 
 def variantcall_sample(data, region=None, align_bams=None, out_file=None):
     """Parallel entry point for doing genotyping of a region of a sample.

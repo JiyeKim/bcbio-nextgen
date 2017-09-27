@@ -14,7 +14,7 @@ from bcbio.pipeline import (archive, disambiguate, qcsummary, region, sample,
 from bcbio.qc import multiqc, qsignature
 from bcbio.variation import (bamprep, genotype, ensemble,
                              joint, multi, population, validate,
-                             vcfutils)
+                             vcfutils, smcounter)
 
 @utils.map_wrap
 def run_tagcount(*args):
@@ -124,6 +124,11 @@ def postprocess_alignment_to_rec(*args):
 @utils.map_wrap
 def postprocess_alignment(*args):
     return sample.postprocess_alignment(*args)
+
+
+@utils.map_wrap
+def variantcall_dgseq(*args):
+    return smcounter.run_smcounter(*args)
 
 @utils.map_wrap
 def prep_samples(*args):

@@ -125,8 +125,13 @@ def variant2pipeline(config, run_info_yaml, parallel, dirs, samples):
                     samples, config, dirs, "multicore",
                     multiplier=alignprep.parallel_multiplier(samples)) as run_parallel:
         with profile.report("organize samples", dirs):
-            samples = run_parallel("organize_samples", [[dirs, config, run_info_yaml,
-                                                            [x[0]["description"] for x in samples]]])
+            samples = run_parallel(
+                "organize_samples", 
+                [
+                    [dirs, config, run_info_yaml,
+                     [x[0]["description"] for x in samples]]
+                ]
+            )
         with profile.report("alignment preparation", dirs):
             samples = run_parallel("prep_align_inputs", samples)
             samples = run_parallel("disambiguate_split", [samples])
@@ -407,88 +412,54 @@ def dgseqpipeline(config, run_info_yaml, parallel, dirs, samples):
     ## Alignment and preparation requiring the entire input file (multicore cluster)
     logger.info("Starting dgseq pipeline")
     logger.info(samples)
+    print('samples--->', samples)
 
-    '''
-    with prun.start(_wres(parallel, ["aligner", "samtools", "sambamba"],
-                           (["reference", "fasta"], ["reference", "aligner"], ["files"])),
-                    samples, config, dirs, "multicore",
-                    multiplier=alignprep.parallel_multiplier(samples)) as run_parallel:
+    ## Alignment and preparation requiring the entire input file (multicore cluster)
+    #start(parallel, items, config, dirs=None, name=None, multiplier=1, max_multicore=None) -> it returns run_parallel() function
+    with prun.start(
+        _wres(parallel, ["aligner", "samtools", "sambamba"],
+              (["reference", "fasta"], ["reference", "aligner"], ["files"])),
+        samples, config, dirs, "multicore",
+        multiplier=alignprep.parallel_multiplier(samples)) as run_parallel:
+
         with profile.report("organize samples", dirs):
-            logger.info("Starting organize samples")
-            samples = run_parallel("organize_samples", [[dirs, config, run_info_yaml,
-                                                            [x[0]["description"] for x in samples]]])
+            samples = run_parallel(
+                "organize_samples",
+                [[dirs, config, run_info_yaml,
+                  [x[0]["description"] for x in samples]]]
+            )
         with profile.report("alignment preparation", dirs):
-            logger.info("Starting organize alignment prep")
             samples = run_parallel("prep_align_inputs", samples)
             samples = run_parallel("disambiguate_split", [samples])
         with profile.report("alignment", dirs):
-            logger.info("Starting organize alignment")
             samples = run_parallel("process_alignment", samples)
             samples = disambiguate.resolve(samples, run_parallel)
             samples = alignprep.merge_split_alignments(samples, run_parallel)
         with profile.report("callable regions", dirs):
             samples = run_parallel("prep_samples", [samples])
-            samples = run_parallel("postprocess_alignment", samples)
+            '''
+            samples = run_parallel("postprocess_alignment_dgseq", samples)
             samples = run_parallel("combine_sample_regions", [samples])
             samples = region.clean_sample_data(samples)
+            '''
+        '''
         with profile.report("hla typing", dirs):
             samples = hla.run(samples, run_parallel)
-
+        '''
+    print('======done align=======')
+    print('samples---->', samples)
     ## Variant calling on sub-regions of the input file (full cluster)
-    with prun.start(_wres(parallel, ["gatk", "picard", "variantcaller"]),
-                    samples, config, dirs, "full",
-                    multiplier=region.get_max_counts(samples), max_multicore=1) as run_parallel:
+    with prun.start(
+        _wres(parallel, ["smcounter"]), samples, config, dirs, "full",
+        multiplier=region.get_max_counts(samples), max_multicore=1) as run_parallel:
+        '''
         with profile.report("alignment post-processing", dirs):
             samples = region.parallel_prep_region(samples, run_parallel)
+        '''
         with profile.report("variant calling", dirs):
-            samples = genotype.parallel_variantcall_region(samples, run_parallel)
-
-    ## Finalize variants, BAMs and population databases (per-sample multicore cluster)
-    with prun.start(_wres(parallel, ["gatk", "gatk-vqsr", "snpeff", "bcbio_variation",
-                                     "gemini", "samtools", "fastqc", "sambamba",
-                                     "bcbio-variation-recall", "qsignature",
-                                     "svcaller", "kraken", "preseq", "smcounter"]),
-                    samples, config, dirs, "multicore2",
-                    multiplier=structural.parallel_multiplier(samples)) as run_parallel:
-        with profile.report("joint squaring off/backfilling", dirs):
-            samples = joint.square_off(samples, run_parallel)
-        with profile.report("variant post-processing", dirs):
-            samples = run_parallel("postprocess_variants", samples)
-            samples = run_parallel("split_variants_by_sample", samples)
-        with profile.report("prepped BAM merging", dirs):
-            samples = region.delayed_bamprep_merge(samples, run_parallel)
-        with profile.report("validation", dirs):
-            samples = run_parallel("compare_to_rm", samples)
-            samples = genotype.combine_multiple_callers(samples)
-        with profile.report("ensemble calling", dirs):
-            samples = ensemble.combine_calls_parallel(samples, run_parallel)
-        with profile.report("validation summary", dirs):
-            samples = validate.summarize_grading(samples)
-        with profile.report("structural variation precall", dirs):
-            samples = structural.run(samples, run_parallel, "precall")
-        with profile.report("structural variation", dirs):
-            samples = structural.run(samples, run_parallel, "initial")
-        with profile.report("structural variation", dirs):
-            samples = structural.run(samples, run_parallel, "standard")
-        with profile.report("structural variation ensemble", dirs):
-            samples = structural.run(samples, run_parallel, "ensemble")
-        with profile.report("structural variation digital sequencing", dirs):
-            samples = structural.run(samples, run_parallel, "dgseq")
-        with profile.report("structural variation validation", dirs):
-            samples = run_parallel("validate_sv", samples)
-        with profile.report("heterogeneity", dirs):
-            samples = heterogeneity.run(samples, run_parallel)
-        with profile.report("population database", dirs):
-            samples = population.prep_db_parallel(samples, run_parallel)
-        with profile.report("quality control", dirs):
-            samples = qcsummary.generate_parallel(samples, run_parallel)
-        with profile.report("archive", dirs):
-            samples = archive.compress(samples, run_parallel)
-        with profile.report("upload", dirs):
-            samples = run_parallel("upload_samples", samples)
-            for sample in samples:
-                run_parallel("upload_samples_project", [sample])
-    '''
+            run_parallel("variantcall_dgseq", samples)
+            # samples = genotype.parallel_variantcall_region(samples, run_parallel)
+      
     logger.info("Timing: finished")
     return samples
 

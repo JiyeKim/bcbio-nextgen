@@ -51,14 +51,14 @@ resources:
     jvm_opts: ["-Xms1000m", "-Xmx2500m"]
   picard:
     cores: 1
-    dir: /usr/local/share/java/picard
+    dir: /incogwas/igsite/storage/bcbio/anaconda/bin/picard
   snpEff:
     dir: /usr/local/share/java/snpeff
     jvm_opts: ["-Xms750m", "-Xmx3g"]
   varscan:
     dir: /usr/local/share/java/varscan
   mutect:
-    dir: /usr/local/share/java/mutect
+    dir: /incogwas/igsite/storage/bcbio_dev/env/src/mutect
   cram:
     dir: /usr/local/share/java/cram
   stampy:
@@ -71,4 +71,4 @@ resources:
     jvm_opts: ["-Xms750m", "-Xmx2000m"]
     dir: /usr/local/share/java/oncofuse
   smcounter:
-    dir: ~/works/smCounter_incongs/smCounter/smCounter.py
+    dir: /incogwas/igsite/storage/smcounter/smCounter/smCounter.py
