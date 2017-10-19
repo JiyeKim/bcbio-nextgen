@@ -118,13 +118,17 @@ def _run_smcounter_caller(align_bams, items, ref_file, assoc_files,
     bedtarget = config['algorithm']['variant_regions']
     ref_file = ref_file
     bedtoolspath = '/incogwas/igsite/storage/bcbio/anaconda/bin/'
-    runpath = items['dirs']['work']
+    runpath = os.path.join(items['dirs']['work'], 'variantcall', items["description"])
+
+    # make directory for smCounter results
+    if not os.path.exists(runpath):
+        os.makedirs(runpath)
 
     cmd = ("python {smcounter} --outPrefix smcounter --bamFile {input_bams} "
            "--bedTarget {bedtarget} --minBQ 20 --minMQ 30 --hpLen 10 "
            "--rpb 1.5 --mismatchThr 6.0 --mtDrop 0 --primerDist 2 --mtDepth 3 "
            "--refGenome {ref_file} --bedtoolsPath {bedtoolspath} "
-       	   "--runPath {runpath} --logFile {runpath}/log")
+           "--runPath {runpath} --logFile {runpath}/smCounterLog")
     cmdstring = cmd.format(**locals())
     print('cmd----------->', cmdstring)
 
