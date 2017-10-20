@@ -437,6 +437,7 @@ def dgseqpipeline(config, run_info_yaml, parallel, dirs, samples):
             samples = alignprep.merge_split_alignments(samples, run_parallel)
         with profile.report("callable regions", dirs):
             samples = run_parallel("prep_samples", [samples])
+            # samples = run_parallel("cluster_barcode", samples)
             '''
             samples = run_parallel("postprocess_alignment_dgseq", samples)
             samples = run_parallel("combine_sample_regions", [samples])
@@ -458,7 +459,6 @@ def dgseqpipeline(config, run_info_yaml, parallel, dirs, samples):
         '''
         with profile.report("variant calling", dirs):
             run_parallel("variantcall_dgseq", samples)
-            # samples = genotype.parallel_variantcall_region(samples, run_parallel)
       
     logger.info("Timing: finished")
     return samples

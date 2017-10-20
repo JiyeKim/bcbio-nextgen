@@ -16,7 +16,7 @@ def get_max_counts(samples):
     """Retrieve number of regions that can be processed in parallel from current samples.
     """
     counts = []
-    for data in (x[0] for x in samples):
+    for data in (x for x in samples):
         count = tz.get_in(["config", "algorithm", "callable_count"], data, 1)
         vcs = tz.get_in(["config", "algorithm", "variantcaller"], data, [])
         if isinstance(vcs, basestring):
