@@ -3,24 +3,26 @@ upload:
 details:
   - analysis: dgseq
     description: Test for digitalseq1
-    files: [/incogwas/igsite/storage/bcbio_dev/bcbio_v2/bcbio-nextgen/tests/data/test_dgseq/R_2017_06_19_01_17_03_user_SN1-99-Ion_AmpliSeq_Colon_and_Lung_Cancer_Panel_v2.IonXpress_001.Qcancerpanel.fastq]
-    genome_build: hg19
+    # files: [/incogwas/igsite/storage/bcbio_dev/bcbio_v2/bcbio-nextgen/tests/data/test_dgseq/R_2017_06_19_01_17_03_user_SN1-99-Ion_AmpliSeq_Colon_and_Lung_Cancer_Panel_v2.IonXpress_001.Qcancerpanel.fastq]
+    files: [/incogwas/igsite/storage/bcbio_dev/bcbio_v2/bcbio-nextgen/tests/data/test_dgseq/trimmed_001.fastq]
+    genome_build: GRCh37
     algorithm:
       aligner: bwa
       variantcaller: [smcounter]
-      variant_regions: ../data/test_dgseq/chr22_targets.bed
+      variant_regions: ../data/test_dgseq/all_targets2.bed
       quality_format: Standard
     metadata:
       batch: TestBatch1
 
   - analysis: dgseq
     description: Test for digitalseq2
-    files: [/incogwas/igsite/storage/bcbio_dev/bcbio_v2/bcbio-nextgen/tests/data/test_dgseq/R_2017_06_19_01_17_03_user_SN1-99-Ion_AmpliSeq_Colon_and_Lung_Cancer_Panel_v2.IonXpress_002.Qcancerpanel.fastq]
-    genome_build: hg19
+    # files: [/incogwas/igsite/storage/bcbio_dev/bcbio_v2/bcbio-nextgen/tests/data/test_dgseq/R_2017_06_19_01_17_03_user_SN1-99-Ion_AmpliSeq_Colon_and_Lung_Cancer_Panel_v2.IonXpress_002.Qcancerpanel.fastq]
+    files: [/incogwas/igsite/storage/bcbio_dev/bcbio_v2/bcbio-nextgen/tests/data/test_dgseq/trimmed_002.fastq]
+    genome_build: GRCh37
     algorithm:
       aligner: bwa
       variantcaller: [smcounter]
-      variant_regions: ../data/test_dgseq/chr22_targets.bed
+      variant_regions: ../data/test_dgseq/all_targets2.bed
       quality_format: Standard
     metadata:
       batch: TestBatch1

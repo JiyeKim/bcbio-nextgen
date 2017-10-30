@@ -1,2 +1,4 @@
 hg19	hg19	hg19	../../genomes/hg19/bwa/hg19.fa
 mm9	mm9	mm9	../../genomes/mm9/bwa/mm9.fa
+hg38	hg38	Human (hg38) full	/incogwas/igsite/storage/bcbio/genomes/Hsapiens/hg38/bwa/hg38.fa
+GRCh37	GRCh37	Human (GRCh37)	/incogwas/igsite/storage/bcbio/genomes/Hsapiens/GRCh37/bwa/GRCh37.fa

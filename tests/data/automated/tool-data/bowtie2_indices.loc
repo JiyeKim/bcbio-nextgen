@@ -1,2 +1,4 @@
 hg19	hg19	hg19	../../genomes/hg19/bowtie2/hg19
 mm9	mm9	mm9	../../genomes/mm9/bowtie2/mm9
+hg38	hg38	Human (hg38) full	/incogwas/igsite/storage/bcbio/genomes/Hsapiens/hg38/bowtie2/hg38
+GRCh37	GRCh37	Human (GRCh37)	/incogwas/igsite/storage/bcbio/genomes/Hsapiens/GRCh37/bowtie2/GRCh37

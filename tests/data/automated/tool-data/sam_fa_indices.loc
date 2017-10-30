@@ -1,3 +1,5 @@
 index	hg19	../../genomes-old-wrong-test/hg19/seq/hg19.fa
 index	hg19	../../genomes/hg19/seq/hg19.fa
 index	mm9	../../genomes/mm9/seq/mm9.fa
+index	hg38	/incogwas/igsite/storage/bcbio/genomes/Hsapiens/hg38/seq/hg38.fa
+index	GRCh37	/incogwas/igsite/storage/bcbio/genomes/Hsapiens/GRCh37/seq/GRCh37.fa
