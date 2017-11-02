@@ -63,7 +63,7 @@ def parse_cigars_get_barcode_pos(cigar, flag):
 
 def get_12n_barcode(row, n=12):
     # print row.name
-    if row.FLAG not in [0, 16]:
+    if row.FLAG == 4:
         return None
     
     strings, barcode_pos = parse_cigars_get_barcode_pos(row.CIGAR, row.FLAG)
@@ -75,11 +75,16 @@ def get_12n_barcode(row, n=12):
     
     # cut barcode sequence 12 base
     if len(barcode) > 12:
+        if row.FLAG & 16: # - strand
+            barcode = barcode[-n:]
+        else:
+            barcode = barcode[:n]
+        '''
         if row.FLAG == 0: # + strand
             barcode = barcode[:n]
         elif row.FLAG == 16: # - strand
             barcode = barcode[-n:]
-            
+        ''' 
     # check barcode length (default: > 7bp)
     minimum_barcode_length = n - 5
     if len(barcode) < minimum_barcode_length:
@@ -137,15 +142,16 @@ def _run_cluster_barcode(bamfile):
 
     # convert bam to sam
     do.run("samtools view -G 4 {bamfile} > {samfile}".format(**locals()))
-    
+
     # barcode extraction
     df = pd.read_table(
         samfile, index_col=0, header=None,
         usecols=list(range(0, 11)),
-        names = ['QNAME', 'FLAG', 'RNAME', 'POS',
-                 'MAPQ', 'CIGAR', 'RNEXT', 'PNEXT',
-                 'TLEN', 'SEQ', 'QUAL'],
+        names=['QNAME', 'FLAG', 'RNAME', 'POS',
+               'MAPQ', 'CIGAR', 'RNEXT', 'PNEXT',
+               'TLEN', 'SEQ', 'QUAL'],
     )
+
     df['BARCODE'] = df.apply(get_12n_barcode, axis=1)
     df_dropna = df.dropna(subset=['BARCODE'])
 
@@ -226,8 +232,9 @@ def _run_cluster_barcode(bamfile):
         for line in open(samfile):
             items = line.split('\t')
             original_id = items[0]
-            if not isinstance(df.loc[original_id], pd.Series):
-                continue
+            if original_id in df.index:
+                if not isinstance(df.loc[original_id], pd.Series):
+                    continue
 
             new_id = df.loc[original_id].FINAL_QNAME
             line = line.replace(original_id, new_id)
