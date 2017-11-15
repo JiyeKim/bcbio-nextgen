@@ -116,17 +116,15 @@ def compare_and_merge_barcode(target, barcodes_df, min_dist):
 
 def get_new_barcode(row):
     original_barcode = row.BARCODE if row.BARCODE else 'undefined'
-    clustered_barcode = row.FINAL_BARCODE if row.FINAL_BARCODE else original_barcode
     
     new_id = '{ori_id}:{chrno}-{strand}-{position}-{cluster_bar}:{ori_bar}'.format(
         ori_id=row.name,
         chrno=row.RNAME,
         strand='1' if row.FLAG == 16 else '0',
         position=row.POS,
-        cluster_bar=clustered_barcode,
+        cluster_bar=original_barcode,
         ori_bar=original_barcode,
     )
-    print(new_id)
     return new_id
 
 
@@ -157,70 +155,7 @@ def _run_cluster_barcode(bamfile):
 
     print 'total reads:', df.shape
     print 'total reads after dropna:', df_dropna.shape
-
-    # grouping
-    read_groups = df_dropna.sort_values(
-        ['FLAG'], ascending=False).groupby(by=['BARCODE'])
-    count = read_groups.agg('count')
-    count = count.query('BARCODE != 0')
-    count.to_csv("{prefix}_read_groups_sample_by_barcode.csv".format(**locals()))
-    print("all groups:", count.index.size)
-    print("1 read group:", count.query('FLAG == 1').index.size)
-    print("over 1 read group:", count.query('FLAG > 1').index.size)
-    print count.FLAG.describe()
-
-    # Barcode clustering
-    # step 1
-    print(' --- step1 --- ')
-    ''' sorting by number of reads in groups '''
-    barcodes = count.sort_values(by='FLAG', ascending=False)[['FLAG']]
-    barcodes.columns = ['reads_no']
-    real_barcode_cutoff = int(barcodes.reads_no.max() * 0.05)
-    barcodes['is_real'] = barcodes.reads_no >= real_barcode_cutoff
-    barcodes.head()
-    print 'real barcodes (reads >', real_barcode_cutoff, "):", \
-          barcodes.is_real.sum(), '/', barcodes.index.size
-
-    # Step 2
-    print(' --- step2 --- ')
-    barcodes['modified'] = None
-    barcodes['modified'] = barcodes.apply(
-        compare_and_merge_barcode, axis=1, barcodes_df=barcodes, min_dist=1)
-    barcodes[:10]
-    print 'total real barcodes:', barcodes.modified.count(), \
-          '/', barcodes.index.size
-
-    # Step 3
-    print(' --- step3 --- ')
-    barcodes_step3 = barcodes.copy()
-    barcodes_step3.loc[
-        (barcodes_step3.is_real == False) & \
-        (barcodes_step3.reads_no >= 2), 'is_real'] = True
-    print barcodes_step3.head()
-
-    # Step 4
-    print(' --- step4 --- ')
-    barcodes_step4 = barcodes_step3.copy()
-    barcodes_step4['modified'] = barcodes_step4.apply(
-        compare_and_merge_barcode, axis=1,
-        barcodes_df=barcodes_step4, min_dist=2
-    )
-    barcodes_step4[:10]
-    print 'total real barcodes:', barcodes_step4.modified.count(), \
-          '/', barcodes_step4.index.size
-
-    # Summary
-    a = barcodes_step4.query('is_real == False and reads_no > 0').index.size
-    print('undefined barcodes: ', a)
-    b = barcodes_step4.query('is_real == True').index.size
-    print('real barcodes:', b)
-    c = barcodes_step4.query('is_real == False and reads_no == 0').index.size
-    print('merged barcodes:', c)
-    print('total:', a + b + c)
-
-    final_barcodes = barcodes_step4.copy()
-    df['FINAL_BARCODE'] = df.apply(
-        get_final_barcode, axis=1, final_barcodes=final_barcodes)
+    
     df['FINAL_QNAME'] = df.apply(get_new_barcode, axis=1)
     
     print 'writing new samfile...'
@@ -232,9 +167,11 @@ def _run_cluster_barcode(bamfile):
         for line in open(samfile):
             items = line.split('\t')
             original_id = items[0]
-            if original_id in df.index:
-                if not isinstance(df.loc[original_id], pd.Series):
-                    continue
+
+            if original_id not in df.index:
+                continue
+            if not isinstance(df.loc[original_id], pd.Series):
+                continue
 
             new_id = df.loc[original_id].FINAL_QNAME
             line = line.replace(original_id, new_id)
@@ -307,7 +244,8 @@ def _run_smcounter_caller(align_bams, items, ref_file, assoc_files,
 
     cmd = ("python {smcounter} --outPrefix smcounter --bamFile {input_bams} "
            "--bedTarget {bedtarget} --minBQ 20 --minMQ 30 --hpLen 10 "
-           "--rpb 1.5 --mismatchThr 6.0 --mtDrop 0 --primerDist 2 --mtDepth 3 "
+           "--rpb 8.6 --mismatchThr 6.0 --mtDrop 0 --primerDist 2 --mtDepth 3612 "
+           "--threshold 0 --maxMT 0 "
            "--refGenome {ref_file} --bedtoolsPath {bedtoolspath} "
            "--runPath {runpath} --logFile {runpath}/smCounterLog")
     cmdstring = cmd.format(**locals())

@@ -7,4 +7,4 @@ echo "setup..."
 python setup.py install
 
 echo "testing..."
-./tests/run_tests.sh dgseq
+time ./tests/run_tests.sh dgseq
