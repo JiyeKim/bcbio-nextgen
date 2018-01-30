@@ -74,17 +74,19 @@ def get_12n_barcode(row, n=12):
     barcode = row.SEQ[:barcode_pos] if row.FLAG == 16 else row.SEQ[-barcode_pos:]
     
     # cut barcode sequence 12 base
-    if len(barcode) > 12:
+    if row.FLAG & 16: # - strand
+        barcode = barcode[-n:]
+    else:
+        barcode = barcode[:n]
+
+    '''
+    if len(barcode) > n:
         if row.FLAG & 16: # - strand
             barcode = barcode[-n:]
         else:
             barcode = barcode[:n]
-        '''
-        if row.FLAG == 0: # + strand
-            barcode = barcode[:n]
-        elif row.FLAG == 16: # - strand
-            barcode = barcode[-n:]
-        ''' 
+    '''
+
     # check barcode length (default: > 7bp)
     minimum_barcode_length = n - 5
     if len(barcode) < minimum_barcode_length:
@@ -140,14 +142,19 @@ def _run_cluster_barcode(bamfile):
 
     # convert bam to sam
     do.run("samtools view -G 4 {bamfile} > {samfile}".format(**locals()))
+    import csv
+    csv.field_size_limit(500 * 1024 * 1024)
 
     # barcode extraction
     df = pd.read_table(
-        samfile, index_col=0, header=None,
+        samfile, index_col=0, header=None, sep='\t',
         usecols=list(range(0, 11)),
+        # engine='python',
+        error_bad_lines=False,
         names=['QNAME', 'FLAG', 'RNAME', 'POS',
                'MAPQ', 'CIGAR', 'RNEXT', 'PNEXT',
                'TLEN', 'SEQ', 'QUAL'],
+        quoting=3,
     )
 
     df['BARCODE'] = df.apply(get_12n_barcode, axis=1)
